@@ -209,6 +209,14 @@ def correct_count_intent(question: str, spec: dict[str, Any]) -> dict[str, Any]:
             spec["metric"] = "distinct_products"
             spec["group_by"] = None
             spec["limit"] = None
+    if re.search(r"\b(top[- ]selling|best[- ]selling|highest|most|which|what)\b", q):
+        for dimension in ("product", "customer", "region"):
+            if re.search(rf"\b{dimension}s?\b", q):
+                spec["group_by"] = dimension
+                spec["sort"] = "desc"
+                spec["limit"] = 1
+                spec["metric"] = "revenue"
+                break
     return spec
 
 
@@ -256,6 +264,8 @@ def execute(spec: dict[str, Any]) -> Any:
         result.sort(key=lambda x: x["value"], reverse=spec.get("sort", "desc") != "asc")
         if spec.get("limit"):
             result = result[:int(spec["limit"])]
+        if len(result) == 1 and int(spec.get("limit") or 0) == 1:
+            return result[0]["name"]
         return [{"name": x["name"], "value": format_value(x["value"], metric)} for x in result]
     return format_value(value(selected), metric)
 
