@@ -117,7 +117,10 @@ def normalize(value: str) -> str:
 def heuristic_spec(question: str) -> dict[str, Any]:
     q = normalize(question)
     metric = "revenue"
-    if re.search(r"\b(refund|refunded|refunds)\b", q):
+    is_count = bool(re.search(r"\b(count|how many|number of)\b", q))
+    if is_count and re.search(r"\borders?\b", q):
+        metric = "orders"
+    elif re.search(r"\b(refund|refunded|refunds)\b", q):
         metric = "refunds"
     elif re.search(r"\bnet\b", q):
         metric = "net_revenue"
