@@ -209,7 +209,8 @@ def correct_count_intent(question: str, spec: dict[str, Any]) -> dict[str, Any]:
             spec["metric"] = "distinct_products"
             spec["group_by"] = None
             spec["limit"] = None
-    if re.search(r"\b(top[- ]selling|best[- ]selling|highest|most|which|what)\b", q):
+    winner_words = r"\b(top[- ]selling|best[- ]selling|highest|most|least|lowest|which)\b"
+    if re.search(winner_words, q):
         for dimension in ("product", "customer", "region"):
             if re.search(rf"\b{dimension}s?\b", q):
                 spec["group_by"] = dimension
@@ -217,6 +218,9 @@ def correct_count_intent(question: str, spec: dict[str, Any]) -> dict[str, Any]:
                 spec["limit"] = 1
                 spec["metric"] = "revenue"
                 break
+    elif re.search(r"\b(total|how much|amount|revenue|sales|refunds?|net)\b", q):
+        spec["group_by"] = None
+        spec["limit"] = None
     return spec
 
 

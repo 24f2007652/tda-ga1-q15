@@ -101,6 +101,7 @@ def main():
         "How many orders were in 2025?",
         "What is the total revenue in June 2026?",
         "What is the total revenue in the East region?",
+        "What was the total revenue in USD from the West region in March 2026?",
     ]
     expected_answers = [expected(q, rows, rates) for q in questions]
     with ThreadPoolExecutor(max_workers=8) as pool:
