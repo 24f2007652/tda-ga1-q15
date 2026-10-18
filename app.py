@@ -155,6 +155,10 @@ def heuristic_spec(question: str) -> dict[str, Any]:
         for word in words:
             if re.search(rf"\b{word}\b", q):
                 spec["filters"][field] = word.title() if field == "region" else word
+    for field in ("product", "customer"):
+        matches = [value for value in ({r[field] for r in ledger.rows}) if normalize(value) in q]
+        if matches:
+            spec["filters"][field] = max(matches, key=len)
     start, end = time_filter(q)
     spec["start_date"], spec["end_date"] = start.isoformat() if start else None, end.isoformat() if end else None
     if metric in ("distinct_customers", "distinct_products") and group_by is None:
@@ -190,6 +194,22 @@ Use business dates in Asia/Kolkata. Revenue is paid rows; refunds are refunded r
             return json.loads(json.loads(response.read())["choices"][0]["message"]["content"])
     except Exception:
         return None
+
+
+def correct_count_intent(question: str, spec: dict[str, Any]) -> dict[str, Any]:
+    q = normalize(question)
+    count_words = r"\b(how many|count|number of)\b"
+    if re.search(count_words, q) and re.search(r"\b(different|distinct|unique)\b.*\bcustomers?\b|\bcustomers?\b", q):
+        if re.search(r"\b(different|distinct|unique)\b.*\bcustomers?\b", q):
+            spec["metric"] = "distinct_customers"
+            spec["group_by"] = None
+            spec["limit"] = None
+    if re.search(count_words, q) and re.search(r"\b(different|distinct|unique)\b.*\bproducts?\b", q):
+        if re.search(r"\b(different|distinct|unique)\b.*\bproducts?\b", q):
+            spec["metric"] = "distinct_products"
+            spec["group_by"] = None
+            spec["limit"] = None
+    return spec
 
 
 def cents(row: dict[str, Any]) -> int:
@@ -263,7 +283,7 @@ def answer(payload: Question) -> dict[str, Any]:
         question = payload.question.strip()
         if not question:
             return {"answer": 0}
-        spec = llm_spec(question) or heuristic_spec(question)
+        spec = correct_count_intent(question, llm_spec(question) or heuristic_spec(question))
         return {"answer": execute(spec)}
     except Exception:
         return {"answer": 0}
